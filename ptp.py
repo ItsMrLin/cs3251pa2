@@ -68,7 +68,7 @@ class ptp:
 
 	def send(data):
 		"""
-		break packets and call _send()
+		break packets and add to the sending_queue()
 		"""
 		return True
 
