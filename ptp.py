@@ -50,11 +50,18 @@ class ptp:
 
 	def _send():
 		"""
+<<<<<<< HEAD
 		This will also go into it's own thread that will check the
 		not-acked queue and sending queue
 
 
 		"""
+=======
+		Send individual packets
+		
+		"""
+		
+>>>>>>> 749702ff58e5f2447a42581b5182620acd3e1426
 		return True
 		
 	def establishConnection(destIp, destPort, packetsize=24): #in bytes
