@@ -16,6 +16,10 @@ class ptp:
 		self.ip = _ip
 		self.port = _port
 		self.timeout = _timeout
+		self.not_acked_queue = []
+		self.sending_queue = []
+		self.recv_buffer = []
+
 
 	def _listen():
 		"""
@@ -45,6 +49,12 @@ class ptp:
 		#connection is established?
 
 	def _send():
+		"""
+		This will also go into it's own thread that will check the
+		not-acked queue and sending queue
+
+
+		"""
 		return True
 		
 	def establishConnection(destIp, destPort, packetsize=24): #in bytes
@@ -56,7 +66,7 @@ class ptp:
 
 	def send(data):
 		"""
-		Send packet
+		break packets and call _send()
 		"""
 		return True
 
