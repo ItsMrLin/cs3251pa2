@@ -33,7 +33,7 @@ class ptp:
 		#can we set up some sort of callback framework for when a 
 		#connection is established?
 
-	def establishConnection():
+	def establishConnection(packetsize=24): #in bytes
 		"""
 		Send the initial request for a connection establishment
 

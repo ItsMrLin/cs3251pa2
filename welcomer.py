@@ -11,5 +11,5 @@ from ptp import ptp
 
 class welcomer():
 	def __init__(ip):
-		self.connections = []
+		self.connections = {}
 		# set up connection on port 80 and start listening
