@@ -21,7 +21,7 @@ class ptp:
 		self.recv_buffer = []
 
 
-	def _listen():
+	def _listen(self):
 		"""
 		This method creates a socket that is global to the ptp 
 		instance and starts listening on that socket.
@@ -48,7 +48,7 @@ class ptp:
 		#can we set up some sort of callback framework for when a 
 		#connection is established?
 
-	def _send():
+	def _send(self):
 		"""
 		This will also go into it's own thread that will check the
 		not-acked queue and sending queue
@@ -59,20 +59,20 @@ class ptp:
 		
 		return True
 		
-	def establishConnection(destIp, destPort, packetsize=24): #in bytes
+	def establishConnection(self,destIp, destPort, packetsize=24): #in bytes
 		"""
 		Send the initial request for a connection establishment
 
 		"""
 		return True
 
-	def send(data):
+	def send(self,data):
 		"""
 		break packets and add to the sending_queue()
 		"""
 		return True
 
-	def recv():
+	def recv(self):
 		"""
 		receive packet and add it to the buffer
 
@@ -81,7 +81,7 @@ class ptp:
 		return True
 	
 
-	def destroy():
+	def destroy(self):
 		"""
 		Handles our special tear down.
 
