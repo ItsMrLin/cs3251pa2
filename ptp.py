@@ -45,6 +45,11 @@ class ptp:
 		#connection is established?
 
 	def _send():
+		"""
+		Send individual packets
+		
+		"""
+		
 		return True
 		
 	def establishConnection(destIp, destPort, packetsize=24): #in bytes
