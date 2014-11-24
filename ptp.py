@@ -12,15 +12,16 @@ class ptp:
 	Each ptp object represents one ptp connection
 	"""
 
-	def __init__(self, _ip,_port,_timeout=50): #timeout in ms
+	def __init__(self, _ip, _port, _timeout=50): #timeout in ms
 		self.ip = _ip
 		self.port = _port
 		self.timeout = _timeout
 
-	def listen():
+	def _listen():
 		"""
 		This method creates a socket that is global to the ptp 
 		instance and starts listening on that socket.
+		whenever there's a packet coming in, we put it in the buffer
 
 		Takes care of:
 		socket()
@@ -28,19 +29,32 @@ class ptp:
 		socket.listen()
 
 		"""
+		
+		# def _receive():
+		# 	"""
+		# 	Receive individual packets
+		# 	and put things in queue/buffer
+		# 	Move it into the thread obj. created in _listen()
+		# 	
+		# 	"""
+		# 	return True
+	
 		#code things		
 		return True
 		#can we set up some sort of callback framework for when a 
 		#connection is established?
 
-	def establishConnection(packetsize=24): #in bytes
+	def _send():
+		return True
+		
+	def establishConnection(destIp, destPort, packetsize=24): #in bytes
 		"""
 		Send the initial request for a connection establishment
 
 		"""
 		return True
 
-	def send():
+	def send(data):
 		"""
 		Send packet
 		"""
@@ -53,6 +67,7 @@ class ptp:
 		send an Ack back
 		"""
 		return True
+	
 
 	def destroy():
 		"""
