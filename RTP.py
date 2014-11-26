@@ -4,7 +4,7 @@ import socket
 import Queue
 from pprint import pprint
 from RtpPacket import *
-import thread
+import threading
 import time
 from random import randint
 
@@ -15,8 +15,10 @@ class RTP:
 
     def listener(self):
         while True:
-            time.sleep(0.1)
+            time.sleep(0.5)
+            print "check listener!"
             rtpstring = self.dataSocket.recvfrom(self.packetSize)[0]
+            pprint(stringToRtpPacketDict(rtpstring))
             if not (rtpstring == None or len(rtpstring)< self.packetSize):
                 rtpDict = stringToRtpPacketDict(rtpstring)
                 if rtpDict["ack"] == 1:
@@ -29,14 +31,13 @@ class RTP:
                 if RtpPacket.bsdChecksum(rtpstring) == rtpDict["checksum"] and not len(rtpDict["data"].strip())==0:
                     self.received_buffer.put((rtpDict["seqNum"],rtpDict["data"]))
                     _acknowledge(rtpDict)
-
             else:
                 if not len(rtpstring) == self.packetSize:
                     print "Something went wrong. Packet recv'ed is a different length from packetSize."
 
 
     
-    def _acknowledge(self,packetDict):
+    def _acknowledge(self, packetDict):
         #do stuff. ack the things
         if self.sending_queue.qsize() > 0:
 
@@ -47,8 +48,10 @@ class RTP:
 
     def sender(self):
         while True:
-            time.sleep(0.1)
+            time.sleep(0.5)
+            print "outside check sender"
             if not self.sending_queue.empty():
+                print "check sender!"
                 rtpstring = self.sending_queue.get()
                 self.dataSocket.sendto(rtpstring, self.destAddr)
                 self.not_acked_queue.append(rtpstring)
@@ -71,11 +74,11 @@ class RTP:
         self.dataSocket.bind(listen_addr)
 
         #JUST FOR TESTING MOVE LATER -----\/
-        self._initializeDataSocket(3001, 'panda')
+        # self._initializeDataSocket(3001, 'panda')
 
-        thread.start_new_thread(self.sender,())
+        # thread.start_new_thread(self.sender,())
 
-        thread.start_new_thread(self.listener,())
+        # thread.start_new_thread(self.listener,())
         #---------------------------------/\
 
         while True:
@@ -102,8 +105,12 @@ class RTP:
                     # PAV: start spawning thread receiving packets using _receivePacket
                     # good reference for multithreading: http://stackoverflow.com/questions/2846653/python-multithreading-for-dummies
                     # handler(synPacketDictFromClient["data"], addr, rtpInstance)
-                    thread.start_new_thread(self.sender,())
-                    thread.start_new_thread(self.listener,())
+                    tSender = threading.Thread(target=self.sender)
+                    tSender.daemon = True
+                    tSender.start()
+                    tListener = threading.Thread(target=self.listener)
+                    tListener.daemon = True
+                    tListener.start()
 
     """
         called by the welcome server whenever there's a request for new RTP connection
@@ -135,7 +142,6 @@ class RTP:
         self._initializeDataSocket(3000, (serverIp, 3001), initialPacketSizeInByte)
 
         # convert 1500 into binary stored as a 32-bit (4 byte) string
-        pprint(fromBitsToString(str(bin(initialPacketSizeInByte))[2:], 4))
         self._sendPacket(fromBitsToString(str(bin(initialPacketSizeInByte))[2:], 4), {"syn": 1})
         # waiting for server side ack
         ackFromServerForSyn = self._receivePacket()
@@ -145,9 +151,19 @@ class RTP:
             # send ack back to server
             self._sendPacket("", {"ack": 1})
 
-            # ---------FINISH HANDSHAKE ON THE CLIENT SIDE
-            thread.start_new_thread(self.sender,())
-            thread.start_new_thread(self.listener,())
+            # ---------FINISH HANDSHAKE ON THE CLIENT SIDE----------
+            try:
+                # thread.start_new_thread(self.sender,())
+                # thread.start_new_thread(self.listener,())
+                tSender = threading.Thread(target=self.sender)
+                tSender.daemon = True
+                tSender.start()
+                tListener = threading.Thread(target=self.listener)
+                tListener.daemon = True
+                tListener.start()
+            except:
+                print "THREAD DID NOT RUN!"
+                
 
         
 
@@ -185,26 +201,29 @@ class RTP:
         splits sending payload into packets and adds them to the sending queue
     """
     def sendPacket(self, data):
-        dataBits = fromStringToBits(data)
+        # dataBits = fromStringToBits(data)
         numPackets = 1
-        if len(dataBits)/4.0 > self.packetSize:
-            numPackets = int((len(dataBits)/4.0)/self.packetSize) + 1
+        if len(data)+20 > self.packetSize:
+            numPackets = int(len(data)/(self.packetSize-20)) + 1
 
         for i in range(0,numPackets):
             rtpPacketDict = {}
             rtpPacketDict["sourcePort"] = self.port
             rtpPacketDict["destPort"] = self.destAddr[1]
-            rtpPacketDict["seqNum"] = i*self.packetSize + self.seqNum
+            rtpPacketDict["seqNum"] = i * self.packetSize + self.seqNum
             rtpPacketDict["extraHeaderLen"] = 0
             if i <numPackets-1:
-                rtpPacketDict["data"] = dataBits[i*self.packetSize:(i+1)*self.packetSize]
+                rtpPacketDict["data"] = data[i*self.packetSize:(i+1)*self.packetSize]
             else:
-                rtpPacketDict["data"] = dataBits[i*self.packetSize:]
-                rtpPacketDict["data"] = rtpPacketDict["data"] + (' '*(self.packetSize - len(rtpPacketDict["data"])))
+                rtpPacketDict["data"] = data[i*self.packetSize:]
+                rtpPacketDict["data"] = rtpPacketDict["data"] + (' '*(self.packetSize - len(rtpPacketDict["data"]) - 20))
 
             rtpstring = rtpPacketDictToString(rtpPacketDict)
             rtpstring = updatePacketStringChecksum(rtpstring)
-            sending_queue.put(rtpstring)
+
+            print len(rtpstring)
+            self.sending_queue.put(rtpstring)
+            print "clientsize send queue size: ", self.sending_queue.qsize()
 
     """
         called by the server to shutdown the server
