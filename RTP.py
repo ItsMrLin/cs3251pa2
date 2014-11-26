@@ -1,6 +1,7 @@
 # author: Zhiyuan Lin
 
 import socket
+import Queue
 from pprint import pprint
 from RtpPacket import *
 
@@ -25,17 +26,27 @@ class RTP:
         self.dataSocket.bind(listen_addr)
         while True:
             # handle incoming syn packets
+            # in order to get addr, cannot use self._receivePacket here
             data, addr = self.dataSocket.recvfrom(24)
             synPacketDictFromClient = stringToRtpPacketDict(data)
 
-            # create new RTP instance for actual data transfer
-            packetSize = ord(synPacketDictFromClient["data"][3]) + ord(synPacketDictFromClient["data"][2])*256 + ord(synPacketDictFromClient["data"][1])*65536 + ord(synPacketDictFromClient["data"][0])*16777216
-            self._initializeDataSocket(3001, addr, packetSize)
+            if (synPacketDictFromClient['checksum'] == bsdChecksum(data) and synPacketDictFromClient['syn'] == 1):
+                # create new RTP instance for actual data transfer
+                packetSize = ord(synPacketDictFromClient["data"][3]) + ord(synPacketDictFromClient["data"][2])*256 + ord(synPacketDictFromClient["data"][1])*65536 + ord(synPacketDictFromClient["data"][0])*16777216
+                self._initializeDataSocket(3001, addr, packetSize)
 
-            # print int(fromBitsToString([2:], 4), 2)
-            print "from address: " + str(addr[1])
-            # rtpInstance = new rtp instance with new port
-            # handler(synPacketDictFromClient["data"], addr, rtpInstance)
+                # send ack back to client
+                self._sendPacket("", {"ack": 1})
+                
+                # # wait for ack from client
+                ackFromClient = self._receivePacket()
+                ackFromClientDict = stringToRtpPacketDict(ackFromClient)
+                if (ackFromClientDict['checksum'] == bsdChecksum(ackFromClient) and ackFromClientDict['ack'] == 1):
+                    print "BOOM! from address: " + str(addr[1])
+
+                # ------------FINISH HANDSHAKE--------------
+                # rtpInstance = new rtp instance with new port
+                # handler(synPacketDictFromClient["data"], addr, rtpInstance)
 
     """
         called by the welcome server whenever there's a request for new RTP connection
@@ -45,6 +56,10 @@ class RTP:
         self.port = portNum
         self.packetSize = packetSize
         self.destAddr = destAddr
+
+        # initialize queues here
+        self.sending_queue = Queue.Queue()
+        self.not_acked_queue = Queue.Queue()
 
 
     """
@@ -57,17 +72,20 @@ class RTP:
         self.dataSocket.bind(listen_addr)
         self._initializeDataSocket(3000, (serverIp, 3001), initialPacketSizeInByte)
 
-        # set up initial packet
-        synPacketDict = {}
-        synPacketDict["syn"] = 1
         # convert 1500 into binary stored as a 32-bit (4 byte) string
-        self._sendPacket(fromBitsToString(str(bin(initialPacketSizeInByte))[2:], 4), synPacketDict)
-
+        pprint(fromBitsToString(str(bin(initialPacketSizeInByte))[2:], 4))
+        self._sendPacket(fromBitsToString(str(bin(initialPacketSizeInByte))[2:], 4), {"syn": 1})
+        # waiting for server side ack
+        ackFromServerForSyn = self._receivePacket()
+        ackFromServerForSynDict = stringToRtpPacketDict(ackFromServerForSyn)
+        if (ackFromServerForSynDict['checksum'] == bsdChecksum(ackFromServerForSyn) and ackFromServerForSynDict['ack'] == 1):
+            # send ack back to server
+            self._sendPacket("", {"ack": 1})
 
         
 
     """
-        called by RTP instance for sending data
+        called by RTP instance for sending single data packet
     """
     def _sendPacket(self, data, extraDict = {}):
         packetDict = {}
@@ -84,10 +102,13 @@ class RTP:
         synPacketString = updatePacketStringChecksum(synPacketString)
 
         # sending over UDP
-        pprint("sending: " + synPacketString)
         self.dataSocket.sendto(synPacketString, self.destAddr)
 
-
-
-
+    """
+        called by RTP instance for receiving single data packet
+    """
+    def _receivePacket(self, packetSize = None):
+        if packetSize is None:
+            packetSize = self.packetSize
+        return self.dataSocket.recvfrom(packetSize)[0]
 

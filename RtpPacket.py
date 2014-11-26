@@ -49,6 +49,7 @@ def stringToRtpPacketDict(packetString):
             rtpPacketDict["data"] = packetString[20:]
     except:
         print "Unexpected error in stringToRtpPacketDict!"
+        raise
 
     return rtpPacketDict
 
