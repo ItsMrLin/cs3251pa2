@@ -18,7 +18,7 @@ class RTP:
         rtpPacketDict["destPort"] = self.destAddr[1]
         rtpPacketDict["ack"] = 1
         rtpPacketDict["ackNum"] = ackNum
-        # rtpPacketDict["data"] = ' '*(self.packetSize-20)
+        rtpPacketDict["data"] = ' '*(self.packetSize-20)
         rtpstring = rtpPacketDictToString(rtpPacketDict)
         rtpstring = updatePacketStringChecksum(rtpstring)
         self.sending_queue.put(rtpstring)
@@ -52,40 +52,43 @@ class RTP:
             except socket.timeout:
                 sys.exit(0)
 
-            # if not (rtpstring == None or len(rtpstring) < self.packetSize):
-            # print 'CHECKSUM NOT CLEARED YET: '+ str(stringToRtpPacketDict(rtpstring))
-            # print "check listener!"
-            rtpDict = stringToRtpPacketDict(rtpstring)
-            pprint("received: seqNum=" + str(rtpDict["seqNum"]) + " ackNum=" + str(rtpDict["ackNum"]) + " ack=" + str(rtpDict["ack"])  + " fin=" + str(rtpDict["fin"]))
-            if bsdChecksum(rtpstring) == rtpDict["checksum"]:
-                # if it is an ack package, we pop things out from not_acked_queue
-                if rtpDict["ack"] == 1:
-                    for i in range(0,len(self.not_acked_queue)):
-                        not_acked_dict = stringToRtpPacketDict(self.not_acked_queue[i])
-                        # pprint("ACK: not acked seqNum=" + str(not_acked_dict["seqNum"]) + "ackNum-1=" + str(rtpDict["ackNum"] - 1))
-                        if not_acked_dict["seqNum"] == rtpDict["ackNum"] - 1: # if you received an ack for it.
-                            self.not_acked_queue.pop(i)
-                            break
-                
-                # print 'CHECKSUM CLEARED: '+ str(stringToRtpPacketDict(rtpstring))
+            if not (rtpstring == None or len(rtpstring) < self.packetSize):
+                # print 'CHECKSUM NOT CLEARED YET: '+ str(stringToRtpPacketDict(rtpstring))
+                # print "check listener!"
+                rtpDict = stringToRtpPacketDict(rtpstring)
 
-                # if the payload is not empty, ack it and put it in buffer
-                # second condition below is so we don't acknowledge straight up acks
-                if (not len(rtpDict["data"].strip())==0):
-                    self.received_buffer.put((rtpDict["seqNum"],rtpDict["data"]))
-                    self._acknowledge(rtpDict)
-                else:
-                    # if payload is empty, check if it's a fin
-                    if (rtpDict["fin"] == 1):
-                        self.readyToClose = True
+                pprint("RECEIVED: seqNum=" + str(rtpDict["seqNum"]) + " ackNum=" + str(rtpDict["ackNum"]) + " ack=" + str(rtpDict["ack"])  + " fin=" + str(rtpDict["fin"]))
+                pprint("RECEIVED1: seqNum="+ str(rtpDict["seqNum"]) + "packet CheckSum="+ str(rtpDict["checksum"]) + "Sender checksum=" + str(bsdChecksum(rtpstring)) + "packet len="+ str(len(rtpstring)) )
+
+                if bsdChecksum(rtpstring) == rtpDict["checksum"]:
+                    # if it is an ack package, we pop things out from not_acked_queue
+                    if rtpDict["ack"] == 1:
+                        for i in range(0,len(self.not_acked_queue)):
+                            not_acked_dict = stringToRtpPacketDict(self.not_acked_queue[i])
+                            # pprint("ACK: not acked seqNum=" + str(not_acked_dict["seqNum"]) + "ackNum-1=" + str(rtpDict["ackNum"] - 1))
+                            if not_acked_dict["seqNum"] == rtpDict["ackNum"] - 1: # if you received an ack for it.
+                                self.not_acked_queue.pop(i)
+                                break
+                    
+                    # print 'CHECKSUM CLEARED: '+ str(stringToRtpPacketDict(rtpstring))
+
+                    # if the payload is not empty, ack it and put it in buffer
+                    # second condition below is so we don't acknowledge straight up acks
+                    if (not len(rtpDict["data"].strip())==0):
+                        self.received_buffer.put((rtpDict["seqNum"],rtpDict["data"]))
                         self._acknowledge(rtpDict)
-                        self.close()
+                    else:
+                        # if payload is empty, check if it's a fin
+                        if (rtpDict["fin"] == 1):
+                            self.readyToClose = True
+                            self._acknowledge(rtpDict)
+                            self.close()
 
+                else:
+                    print 'CHECKSUM DID NOT CLEAR!'
             else:
-                print 'CHECKSUM DID NOT CLEAR!'
-            # else:
-            #     if not len(rtpstring) == self.packetSize:
-            #         print "Something went wrong. Packet recv'ed is a different length from packetSize."
+                if not len(rtpstring) == self.packetSize:
+                    print "Something went wrong. Packet recv'ed is a different length from packetSize."
 
 
     def sender(self):
@@ -99,7 +102,7 @@ class RTP:
                 pprint("sent: seq=" + str(rtpDict["seqNum"]) + " ackNum=" + str(rtpDict["ackNum"]) + " ack=" + str(rtpDict["ack"]) + " fin=" + str(rtpDict["fin"]))
                 # -------------END FOR DEBUGGING-------------
                 self.dataSocket.sendto(rtpstring, self.destAddr)
-                # if seqNum is 0, it's a simple ack packet, which does not require ack
+                # if seqNum is 0, it's a simple ack packet or fin, which does not require ack
                 if (rtpDict["seqNum"] != 0):
                     self.not_acked_queue.append(rtpstring)
 
@@ -262,7 +265,7 @@ class RTP:
         if len(data)+20 > self.packetSize:
             numPackets = int(len(data)/(self.packetSize-20)) + 1
 
-        for i in range(0,numPackets):
+        for i in range(0, numPackets):
             rtpPacketDict = {}
             rtpPacketDict["sourcePort"] = self.port
             rtpPacketDict["destPort"] = self.destAddr[1]
@@ -270,14 +273,14 @@ class RTP:
             self.seqNum += self.packetSize
             rtpPacketDict["extraHeaderLen"] = 0
             if i <numPackets-1:
-                rtpPacketDict["data"] = data[i*self.packetSize:(i+1)*self.packetSize]
+                rtpPacketDict["data"] = data[i*(self.packetSize-20): (i+1)*(self.packetSize-20)]
             else:
                 rtpPacketDict["data"] = data[i*self.packetSize:]
                 rtpPacketDict["data"] = rtpPacketDict["data"] + (' '*(self.packetSize - len(rtpPacketDict["data"]) - 20))
 
             rtpstring = rtpPacketDictToString(rtpPacketDict)
             rtpstring = updatePacketStringChecksum(rtpstring)
-
+            pprint("SENDING: seqNum="+ str(rtpPacketDict["seqNum"]) + "Sender checksum=" + str(bsdChecksum(rtpstring)) + "packet len=" + str(len(rtpstring)))
             # print len(rtpstring)
             self.sending_queue.put(rtpstring)
             # print "clientsize send queue size: ", self.sending_queue.qsize()
@@ -297,8 +300,9 @@ class RTP:
             finDict = {
                 "sourcePort": self.port,
                 "destPort": self.destAddr[1],
-                "seqNum": self.seqNum,
-                "fin": 1
+                "seqNum": 0,
+                "fin": 1,
+                "data": ' '*(self.packetSize-20)
             }
             self.seqNum += 20
 
