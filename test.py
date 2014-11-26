@@ -42,7 +42,10 @@ def myHandler():
 	pass
 
 rtpServer = RTP()
-rtpServer.setupRTPServer(myHandler)
+rtpServer.setupRTPServer()
+
+while True:
+    pass
 # in another script, run following
 # from RTP import *
 # rtpClient = RTP()
