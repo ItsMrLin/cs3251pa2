@@ -24,14 +24,11 @@ class RTP:
                         not_acked_dict = stringToRtpPacketDict(self.not_acked_queue[i])
                         if not_acked_dict["seqNum"] == rtpDict["ackNum"] - 1: # if you received an ack for it.
                             self.not_acked_queue.pop(i)
-<<<<<<< HEAD
                             break
                 # second condition below is so we don't acknowledge straight up acks
                 if RtpPacket.bsdChecksum(rtpstring) == rtpDict["checksum"] and not len(rtpDict["data"].strip())==0:
                     self.received_buffer.put((rtpDict["seqNum"],rtpDict["data"]))
                     _acknowledge(rtpDict)
-=======
->>>>>>> beb400fcfb96960ec9fae08bc060dfcc804009fc
 
             else:
                 if not len(rtpstring) == self.packetSize:
