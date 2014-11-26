@@ -25,8 +25,9 @@ class RTP:
                         if not_acked_dict["seqNum"] == rtpDict["ackNum"] - 1: # if you received an ack for it.
                             self.not_acked_queue.pop(i)
 
-            else if not len(rtpstring) == self.packetSize:
-                print "Something went wrong. Packet recv'ed is a different length from packetSize."
+            else:
+                if not len(rtpstring) == self.packetSize:
+                    print "Something went wrong. Packet recv'ed is a different length from packetSize."
 
 
     
@@ -128,6 +129,7 @@ class RTP:
         self._sendPacket(fromBitsToString(str(bin(initialPacketSizeInByte))[2:], 4), {"syn": 1})
         # waiting for server side ack
         ackFromServerForSyn = self._receivePacket()
+        print "received ack from server"
         ackFromServerForSynDict = stringToRtpPacketDict(ackFromServerForSyn)
         if (ackFromServerForSynDict['checksum'] == bsdChecksum(ackFromServerForSyn) and ackFromServerForSynDict['ack'] == 1):
             # send ack back to server
