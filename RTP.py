@@ -58,7 +58,7 @@ class RTP:
                 rtpDict = stringToRtpPacketDict(rtpstring)
 
                 pprint("RECEIVED: seqNum=" + str(rtpDict["seqNum"]) + " ackNum=" + str(rtpDict["ackNum"]) + " ack=" + str(rtpDict["ack"])  + " fin=" + str(rtpDict["fin"]))
-                pprint("RECEIVED1: seqNum="+ str(rtpDict["seqNum"]) + "packet CheckSum="+ str(rtpDict["checksum"]) + "Sender checksum=" + str(bsdChecksum(rtpstring)) + "packet len="+ str(len(rtpstring)) )
+                # pprint("RECEIVED1: seqNum="+ str(rtpDict["seqNum"]) + "packet CheckSum="+ str(rtpDict["checksum"]) + "Sender checksum=" + str(bsdChecksum(rtpstring)) + "packet len="+ str(len(rtpstring)) )
 
                 if bsdChecksum(rtpstring) == rtpDict["checksum"]:
                     # if it is an ack package, we pop things out from not_acked_queue
@@ -98,10 +98,10 @@ class RTP:
                 # print "check sender!"
                 rtpstring = self.sending_queue.get()
                 rtpDict = stringToRtpPacketDict(rtpstring)
-                # -------------FOR DEBUGGING-------------
-                pprint("sent: seq=" + str(rtpDict["seqNum"]) + " ackNum=" + str(rtpDict["ackNum"]) + " ack=" + str(rtpDict["ack"]) + " fin=" + str(rtpDict["fin"]))
-                # -------------END FOR DEBUGGING-------------
                 self.dataSocket.sendto(rtpstring, self.destAddr)
+                # -------------FOR DEBUGGING-------------
+                pprint("SENT: seq=" + str(rtpDict["seqNum"]) + " ackNum=" + str(rtpDict["ackNum"]) + " ack=" + str(rtpDict["ack"]) + " fin=" + str(rtpDict["fin"]))
+                # -------------END FOR DEBUGGING-------------
                 # if seqNum is 0, it's a simple ack packet or fin, which does not require ack
                 if (rtpDict["seqNum"] != 0):
                     self.not_acked_queue.append(rtpstring)
@@ -262,8 +262,10 @@ class RTP:
     def sendPacket(self, data):
         # dataBits = fromStringToBits(data)
         numPackets = 1
-        if len(data)+20 > self.packetSize:
-            numPackets = int(len(data)/(self.packetSize-20)) + 1
+        if len(data) + 20 > self.packetSize:
+            numPackets = int(len(data)/(self.packetSize-20))
+            if len(data) % (self.packetSize-20) != 0:
+                numPackets += 1
 
         for i in range(0, numPackets):
             rtpPacketDict = {}
@@ -272,12 +274,11 @@ class RTP:
             rtpPacketDict["seqNum"] = self.seqNum
             self.seqNum += self.packetSize
             rtpPacketDict["extraHeaderLen"] = 0
-            if i <numPackets-1:
+            if i < numPackets-1:
                 rtpPacketDict["data"] = data[i*(self.packetSize-20): (i+1)*(self.packetSize-20)]
             else:
-                rtpPacketDict["data"] = data[i*self.packetSize:]
+                rtpPacketDict["data"] = data[i*(self.packetSize-20):]
                 rtpPacketDict["data"] = rtpPacketDict["data"] + (' '*(self.packetSize - len(rtpPacketDict["data"]) - 20))
-
             rtpstring = rtpPacketDictToString(rtpPacketDict)
             rtpstring = updatePacketStringChecksum(rtpstring)
             pprint("SENDING: seqNum="+ str(rtpPacketDict["seqNum"]) + "Sender checksum=" + str(bsdChecksum(rtpstring)) + "packet len=" + str(len(rtpstring)))
@@ -315,8 +316,16 @@ class RTP:
 
             # if get a fin before, i.e. the other side is finished
             while not (self.sending_queue.empty() and (not self.not_acked_queue)):
-                pprint("CLOSE: sending_queue size=" + str(self.sending_queue.qsize()) + " not_acked_queue size=" + str(len(self.not_acked_queue)))
+                pprint("CLOSING: sending_queue size=" + str(self.sending_queue.qsize()) + " not_acked_queue size=" + str(len(self.not_acked_queue)))
                 time.sleep(1)
+
+        totalString = ""
+        while not self.received_buffer.empty():
+            received = self.received_buffer.get()
+            totalString += received[1]
+        pprint("DATA: received_buffer size=" + str(self.received_buffer.qsize()))
+        pprint("DATA: blah count=" + str(totalString.count("blah")))
+        pprint(totalString)
         # when all data sent and acknowledged
         pprint("CLOSED") 
         sys.exit(0)    
