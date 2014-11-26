@@ -1,5 +1,3 @@
-# author: Zhiyuan Lin
-
 import socket
 import Queue
 from pprint import pprint
@@ -13,13 +11,22 @@ class RTP:
     def __init__(self):
         pass
 
+    def _sendSimpleAck(self,ackNum):
+        pass
+        
+    def _acknowledge(self, packetDict):
+        #do stuff. ack the things
+        if self.sending_queue.qsize() > 0:
+            pass
+        pass
+
     def listener(self):
         while True:
-            time.sleep(0.5)
-            print "check listener!"
+            time.sleep(0.1)
             rtpstring = self.dataSocket.recvfrom(self.packetSize)[0]
-            pprint(stringToRtpPacketDict(rtpstring))
+            #print 'rtp: '+ rtpstring
             if not (rtpstring == None or len(rtpstring)< self.packetSize):
+                print "check listener!"
                 rtpDict = stringToRtpPacketDict(rtpstring)
                 if rtpDict["ack"] == 1:
                     for i in range(0,len(self.not_acked_queue)):
@@ -28,28 +35,18 @@ class RTP:
                             self.not_acked_queue.pop(i)
                             break
                 # second condition below is so we don't acknowledge straight up acks
-                if RtpPacket.bsdChecksum(rtpstring) == rtpDict["checksum"] and not len(rtpDict["data"].strip())==0:
+                if bsdChecksum(rtpstring) == rtpDict["checksum"] and not len(rtpDict["data"].strip())==0:
                     self.received_buffer.put((rtpDict["seqNum"],rtpDict["data"]))
-                    _acknowledge(rtpDict)
+                    print(stringToRtpPacketDict(rtpstring))
+                    self._acknowledge(rtpDict)
             else:
                 if not len(rtpstring) == self.packetSize:
                     print "Something went wrong. Packet recv'ed is a different length from packetSize."
 
 
-    
-    def _acknowledge(self, packetDict):
-        #do stuff. ack the things
-        if self.sending_queue.qsize() > 0:
-
-        pass
-    def _sendSimpleAck(self,ackNum):
-        pass
-
-
     def sender(self):
         while True:
             time.sleep(0.5)
-            print "outside check sender"
             if not self.sending_queue.empty():
                 print "check sender!"
                 rtpstring = self.sending_queue.get()
