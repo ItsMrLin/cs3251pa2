@@ -6,6 +6,7 @@ from pprint import pprint
 from RtpPacket import *
 import thread
 import time
+from random import randint
 
 class RTP:
 
@@ -14,8 +15,14 @@ class RTP:
 
     def listener(self):
         while True:
-            time.sleep(0.3)
-            
+            time.sleep(0.1)
+            rtpstring = self.dataSocket.recvfrom(self.packetSize)[0]
+            if not (rtpstring == None or len(rtpstring)< self.packetSize):
+                #todo
+
+    
+    def _acknowledge(self):
+        #do stuff. ack the things
 
     def sender(self):
         while True:
@@ -23,8 +30,7 @@ class RTP:
             if not self.sending_queue.empty():
                 rtpstring = self.sending_queue.get()
                 self.dataSocket.sendto(rtpstring, self.destAddr)
-                bitString = fromStringToBits(rtpstring);
-                self.not_acked_queue.put(int(bitString[32:64], 2)) # Add sequence number to the not_acked_queue. This bit operation was taken from RtpPacket.py
+                self.not_acked_queue.put(rtpstring) 
 
     """
         called by the server to set up the welcome socket
@@ -48,6 +54,7 @@ class RTP:
 
         thread.start_new_thread(self.listener,())
         #---------------------------------/\
+
         while True:
             # handle incoming syn packets
             # in order to get addr, cannot use self._receivePacket here
@@ -84,7 +91,7 @@ class RTP:
         self.packetSize = packetSize
         self.destAddr = destAddr
         self.dataSocket.settimeout(60) #60 seconds
-        self.seqNum = randrange(0,4000000,1)
+        self.seqNum = randint(0,4000000)
 
         # initialize queues here
         self.sending_queue = Queue.Queue()
