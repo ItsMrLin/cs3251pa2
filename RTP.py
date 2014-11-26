@@ -166,9 +166,12 @@ class RTP:
 
 
     def setupRTPServer(self):
+        self.serverIsRunning = True
         tSender = threading.Thread(target=self._setupRTPServer)
         tSender.daemon = True
         tSender.start()
+        while self.serverIsRunning:
+            continue
 
     """
         called by the welcome server whenever there's a request for new RTP connection
@@ -289,8 +292,8 @@ class RTP:
     """
         called by the server to shutdown the server
     """
-    def shutdown():
-        pass
+    def shutdown(self):
+        close()
 
     """
         called by the client in order to close the connection
@@ -328,4 +331,5 @@ class RTP:
         pprint(totalString)
         # when all data sent and acknowledged
         pprint("CLOSED") 
+        self.serverIsRunning = False
         sys.exit(0)    
