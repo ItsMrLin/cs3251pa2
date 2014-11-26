@@ -159,7 +159,7 @@ class RTP:
 
         splits sending payload into packets and adds them to the sending queue
     """
-    def sendPacket(self,data):
+    def sendPacket(self, data):
         dataBits = RtpPacket.fromStringToBits(data)
         numPackets = 1
         if len(dataBits)/4.0 > self.packetSize:
