@@ -18,7 +18,19 @@ class RTP:
             time.sleep(0.1)
             rtpstring = self.dataSocket.recvfrom(self.packetSize)[0]
             if not (rtpstring == None or len(rtpstring)< self.packetSize):
+                rtpDict = stringToRtpPacketDict(rtpstring)
+                if rtpDict["ack"] == 1:
+                    for i in range(0,len(self.not_acked_queue)):
+                        not_acked_dict = stringToRtpPacketDict(self.not_acked_queue[i])
+                        if not_acked_dict["seqNum"] == rtpDict["ackNum"] - 1: # if you received an ack for it.
+                            self.not_acked_queue.pop(i)
                 
+
+
+
+            else if not len(rtpstring) == self.packetSize:
+                print "Something went wrong. Packet recv'ed is a different length from packetSize."
+
 
     
     def _acknowledge(self):
@@ -30,7 +42,9 @@ class RTP:
             if not self.sending_queue.empty():
                 rtpstring = self.sending_queue.get()
                 self.dataSocket.sendto(rtpstring, self.destAddr)
-                self.not_acked_queue.put(rtpstring) 
+                self.not_acked_queue.append(rtpstring)
+
+            #TODO: resend not_acked things after a certain amount of time
 
     """
         called by the server to set up the welcome socket
@@ -95,7 +109,7 @@ class RTP:
 
         # initialize queues here
         self.sending_queue = Queue.Queue()
-        self.not_acked_queue = Queue.Queue()
+        self.not_acked_queue = []
         self.received_buffer = Queue.Queue()
 
 
