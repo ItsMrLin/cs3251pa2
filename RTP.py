@@ -24,16 +24,18 @@ class RTP:
                         not_acked_dict = stringToRtpPacketDict(self.not_acked_queue[i])
                         if not_acked_dict["seqNum"] == rtpDict["ackNum"] - 1: # if you received an ack for it.
                             self.not_acked_queue.pop(i)
-                
-
-
+                            break
+                # second condition below is so we don't acknowledge straight up acks
+                if RtpPacket.bsdChecksum(rtpstring) == rtpDict["checksum"] and not len(rtpDict["data"].strip())==0:
+                    self.received_buffer.put((rtpDict["seqNum"],rtpDict["data"]))
+                    _acknowledge(rtpDict)
 
             else if not len(rtpstring) == self.packetSize:
                 print "Something went wrong. Packet recv'ed is a different length from packetSize."
 
 
     
-    def _acknowledge(self):
+    def _acknowledge(self,packetDict):
         #do stuff. ack the things
 
     def sender(self):
@@ -110,7 +112,7 @@ class RTP:
         # initialize queues here
         self.sending_queue = Queue.Queue()
         self.not_acked_queue = []
-        self.received_buffer = Queue.Queue()
+        self.received_buffer = Queue.PriorityQueue()
 
 
 
