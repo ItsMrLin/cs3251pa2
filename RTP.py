@@ -38,7 +38,12 @@ class RTP:
     
     def _acknowledge(self,packetDict):
         #do stuff. ack the things
+        if self.sending_queue.qsize() > 0:
+
         pass
+    def _sendSimpleAck(self,ackNum):
+        pass
+
 
     def sender(self):
         while True:
