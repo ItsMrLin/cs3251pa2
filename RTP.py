@@ -18,7 +18,9 @@ class RTP:
         rtpPacketDict["ack"] = 1
         rtpPacketDict["ackNum"] = ackNum
         rtpPacketDict["data"] = ' '*(self.packetSize-20)
-        self.sending_queue.put(rtpPacketDictToString(rtpPacketDict))
+        rtpstring = rtpPacketDictToString(rtpPacketDict)
+        rtpstring = updatePacketStringChecksum(rtpstring)
+        self.sending_queue.put(rtpstring)
         
     def _acknowledge(self, packetDict):
         #do stuff. ack the things
@@ -35,9 +37,9 @@ class RTP:
                 else:
                     seld.sending_queue.put(rtpstring)
             if not done:
-                _sendSimpleAck(packetDict["seqNum"]+1)
+                self._sendSimpleAck(packetDict["seqNum"]+1)
         else:
-            _sendSimpleAck(packetDict["seqNum"])
+            self._sendSimpleAck(packetDict["seqNum"])
 
 
     def listener(self):
@@ -46,19 +48,25 @@ class RTP:
             rtpstring = self.dataSocket.recvfrom(self.packetSize)[0]
             #print 'rtp: '+ rtpstring
             if not (rtpstring == None or len(rtpstring)< self.packetSize):
+                print 'CHECKSUM NOT CLEARED YET: '+ str(stringToRtpPacketDict(rtpstring))
                 print "check listener!"
                 rtpDict = stringToRtpPacketDict(rtpstring)
-                if rtpDict["ack"] == 1:
-                    for i in range(0,len(self.not_acked_queue)):
-                        not_acked_dict = stringToRtpPacketDict(self.not_acked_queue[i])
-                        if not_acked_dict["seqNum"] == rtpDict["ackNum"] - 1: # if you received an ack for it.
-                            self.not_acked_queue.pop(i)
-                            break
-                # second condition below is so we don't acknowledge straight up acks
-                if bsdChecksum(rtpstring) == rtpDict["checksum"] and not len(rtpDict["data"].strip())==0:
-                    self.received_buffer.put((rtpDict["seqNum"],rtpDict["data"]))
-                    print(stringToRtpPacketDict(rtpstring))
-                    self._acknowledge(rtpDict)
+                if bsdChecksum(rtpstring) == rtpDict["checksum"]:
+                    if rtpDict["ack"] == 1:
+                        for i in range(0,len(self.not_acked_queue)):
+                            not_acked_dict = stringToRtpPacketDict(self.not_acked_queue[i])
+                            if not_acked_dict["seqNum"] == rtpDict["ackNum"] - 1: # if you received an ack for it.
+                                self.not_acked_queue.pop(i)
+                                break
+                    
+                    print 'CHECKSUM CLEARED: '+ str(stringToRtpPacketDict(rtpstring))
+
+                    # second condition below is so we don't acknowledge straight up acks
+                    if not len(rtpDict["data"].strip())==0:
+                        self.received_buffer.put((rtpDict["seqNum"],rtpDict["data"]))
+                        self._acknowledge(rtpDict)
+                else:
+                    print 'CHECKSUM DID NOT CLEAR!'
             else:
                 if not len(rtpstring) == self.packetSize:
                     print "Something went wrong. Packet recv'ed is a different length from packetSize."
