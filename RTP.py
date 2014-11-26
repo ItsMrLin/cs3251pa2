@@ -72,6 +72,8 @@ class RTP:
                     # PAV: start spawning thread receiving packets using _receivePacket
                     # good reference for multithreading: http://stackoverflow.com/questions/2846653/python-multithreading-for-dummies
                     # handler(synPacketDictFromClient["data"], addr, rtpInstance)
+                    thread.start_new_thread(self.sender,())
+                    thread.start_new_thread(self.listener,())
 
     """
         called by the welcome server whenever there's a request for new RTP connection
