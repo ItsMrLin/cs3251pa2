@@ -12,6 +12,20 @@ class RTP:
     def __init__(self):
         pass
 
+    def listener(self):
+        while True:
+            time.sleep(0.3)
+            
+
+    def sender(self):
+        while True:
+            time.sleep(0.1)
+            if not self.sending_queue.empty():
+                rtpstring = self.sending_queue.get()
+                self.dataSocket.sendto(rtpstring, self.destAddr)
+                bitString = fromStringToBits(rtpstring);
+                self.not_acked_queue.put(int(bitString[32:64], 2)) # Add sequence number to the not_acked_queue. This bit operation was taken from RtpPacket.py
+
     """
         called by the server to set up the welcome socket
         handler is provided by the application that uses rtp in order to handle incoming test
@@ -26,6 +40,14 @@ class RTP:
         self.dataSocket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
         listen_addr = ("", 3001)
         self.dataSocket.bind(listen_addr)
+
+        #JUST FOR TESTING MOVE LATER -----\/
+        self._initializeDataSocket(3001, 'panda')
+
+        thread.start_new_thread(self.sender,())
+
+        thread.start_new_thread(self.listener,())
+        #---------------------------------/\
         while True:
             # handle incoming syn packets
             # in order to get addr, cannot use self._receivePacket here
@@ -51,11 +73,6 @@ class RTP:
                     # good reference for multithreading: http://stackoverflow.com/questions/2846653/python-multithreading-for-dummies
                     # handler(synPacketDictFromClient["data"], addr, rtpInstance)
 
-    def listen(self,threadname,delay):
-        while true:
-
-        return
-
     """
         called by the welcome server whenever there's a request for new RTP connection
         to initialize the rtp instance used for sending actual data
@@ -65,7 +82,7 @@ class RTP:
         self.packetSize = packetSize
         self.destAddr = destAddr
         self.dataSocket.settimeout(60) #60 seconds
-
+        self.seqNum = randrange(0,4000000,1)
 
         # initialize queues here
         self.sending_queue = Queue.Queue()
@@ -123,6 +140,33 @@ class RTP:
         if packetSize is None:
             packetSize = self.packetSize
         return self.dataSocket.recvfrom(packetSize)[0]
+
+    """
+        called by the client to send data
+
+        splits sending payload into packets and adds them to the sending queue
+    """
+    def sendPacket(self,data):
+        dataBits = RtpPacket.fromStringToBits(data)
+        numPackets = 1
+        if len(dataBits)/4.0 > self.packetSize:
+            numPackets = int((len(dataBits)/4.0)/self.packetSize) + 1
+
+        for i in range(0,numPackets):
+            rtpPacketDict = {}
+            rtpPacketDict["sourcePort"] = self.port
+            rtpPacketDict["destPort"] = 5678
+            rtpPacketDict["seqNum"] = i*self.packetSize + self.seqNum
+            rtpPacketDict["extraHeaderLen"] = 0
+            if i <numPackets-1:
+                rtpPacketDict["data"] = dataBits[i*self.packetSize:(i+1)*self.packetSize]
+            else:
+                rtpPacketDict["data"] = dataBits[i*self.packetSize:]
+                rtpPacketDict["data"] = rtpPacketDict["data"] + (' '*(self.packetSize - len(rtpPacketDict["data"])))
+
+            rtpstring = rtpPacketDictToString(rtpPacketDict)
+            rtpstring = updatePacketStringChecksum(rtpstring)
+            sending_queue.put(rtpstring)
 
     """
         called by the server to shutdown the server
