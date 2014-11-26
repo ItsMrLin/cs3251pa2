@@ -60,7 +60,7 @@ class RTP:
         handler is provided by the application that uses rtp in order to handle incoming test
         handler should be a call back function with parameters like function(data, rtpInstance for sending data back)
     """
-    def setupRTPServer(self, handler):
+    def _setupRTPServer(self):
         # setting up initial welcome RTP instance variables
         # due to NetEmu port number limitation we no longer support this
         # self.nextServerPortNum = 5001
@@ -108,6 +108,14 @@ class RTP:
                     tListener = threading.Thread(target=self.listener)
                     tListener.daemon = True
                     tListener.start()
+                    tSender.join()
+                    tListener.join()
+
+
+    def setupRTPServer(self):
+        tSender = threading.Thread(target=self._setupRTPServer)
+        tSender.daemon = True
+        tSender.start()
 
     """
         called by the welcome server whenever there's a request for new RTP connection
