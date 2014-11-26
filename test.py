@@ -38,8 +38,11 @@ from RTP import *
 
 # --------------------test 3----------------------
 # ----------------establish connection: step 1------------
+def myHandler():
+    pass
+    
 rtpServer = RTP()
-rtpServer.setupRTPServer()
+rtpServer.setupRTPServer(myHandler)
 
 # in another script, run following
 # from RTP import *
