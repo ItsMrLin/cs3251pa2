@@ -18,7 +18,7 @@ class RTP:
             time.sleep(0.1)
             rtpstring = self.dataSocket.recvfrom(self.packetSize)[0]
             if not (rtpstring == None or len(rtpstring)< self.packetSize):
-                #todo
+                
 
     
     def _acknowledge(self):
@@ -168,7 +168,7 @@ class RTP:
         for i in range(0,numPackets):
             rtpPacketDict = {}
             rtpPacketDict["sourcePort"] = self.port
-            rtpPacketDict["destPort"] = 5678
+            rtpPacketDict["destPort"] = self.destAddr[1]
             rtpPacketDict["seqNum"] = i*self.packetSize + self.seqNum
             rtpPacketDict["extraHeaderLen"] = 0
             if i <numPackets-1:
