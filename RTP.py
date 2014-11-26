@@ -12,13 +12,33 @@ class RTP:
         pass
 
     def _sendSimpleAck(self,ackNum):
-        pass
+        rtpPacketDict = {}
+        rtpPacketDict["sourcePort"] = self.port
+        rtpPacketDict["destPort"] = self.destAddr[1]
+        rtpPacketDict["ack"] = 1
+        rtpPacketDict["ackNum"] = ackNum
+        rtpPacketDict["data"] = ' '*(self.packetSize-20)
+        self.sending_queue.put(rtpPacketDictToString(rtpPacketDict))
         
     def _acknowledge(self, packetDict):
         #do stuff. ack the things
         if self.sending_queue.qsize() > 0:
-            pass
-        pass
+            done = False
+            for i in range(0,self.sending_queue.qsize()):
+                rtpstring = self.sending_queue.get()
+                rtpDict = stringToRtpPacketDict(rtpstring)
+                if rtpDict["ack"] == 0 and not done:
+                    rtpDict["ack"] == 1
+                    rtpDict["ackNum"] = packetDict["seqNum"]+1
+                    self.sending_queue.put(rtpPacketDictToString(rtpDict))
+                    done = True
+                else:
+                    seld.sending_queue.put(rtpstring)
+            if not done:
+                _sendSimpleAck(packetDict["seqNum"]+1)
+        else:
+            _sendSimpleAck(packetDict["seqNum"])
+
 
     def listener(self):
         while True:
