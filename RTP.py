@@ -96,7 +96,8 @@ class RTP:
         # initialize queues here
         self.sending_queue = Queue.Queue()
         self.not_acked_queue = Queue.Queue()
-        self.received_queue = Queue.Queue()
+        self.received_buffer = Queue.Queue()
+
 
 
 
