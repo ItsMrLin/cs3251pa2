@@ -9,17 +9,23 @@ class RTP:
 
     """
         called by the server to set up the welcome socket
+        handler is provided by the application that uses rtp in order to handle incoming test
+        handler should be a call back function with parameters like function(data, client_address, rtpInstance for sending data back)
     """
-    def setupRTPServer(self):
+    def setupRTPServer(self, handler):
         self.welcomeSocket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
         listen_addr = ("", 3001)
         self.welcomeSocket.bind(listen_addr)
         while True:
             # handle incoming syn packets
-            data,addr = self.welcomeSocket.recvfrom(24)
-            synPacketDictFromClient = stringToRtpPacketDict(data)
+            data, addr = self.welcomeSocket.recvfrom(24)
+            synPacketDictFromClient = stringToRtpPacketDict()
+            # do more stuff...
+            # Todo
             print synPacketDictFromClient["sourcePort"]
             print "from address: " + str(addr)
+            # rtpInstance = new rtp instance with new port
+            # handler(synPacketDictFromClient["data"], addr, rtpInstance）
 
     """
         called by client in order to establish a new connection with a server
