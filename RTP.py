@@ -120,6 +120,10 @@ class RTP:
             # send ack back to server
             self._sendPacket("", {"ack": 1})
 
+            # ---------FINISH HANDSHAKE ON THE CLIENT SIDE
+            thread.start_new_thread(self.sender,())
+            thread.start_new_thread(self.listener,())
+
         
 
     """
