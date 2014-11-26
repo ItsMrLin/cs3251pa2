@@ -4,6 +4,8 @@ import socket
 import Queue
 from pprint import pprint
 from RtpPacket import *
+import thread
+import time
 
 class RTP:
 
@@ -49,6 +51,11 @@ class RTP:
                     # good reference for multithreading: http://stackoverflow.com/questions/2846653/python-multithreading-for-dummies
                     # handler(synPacketDictFromClient["data"], addr, rtpInstance)
 
+    def listen(self,threadname,delay):
+        while true:
+
+        return
+
     """
         called by the welcome server whenever there's a request for new RTP connection
         to initialize the rtp instance used for sending actual data
@@ -57,11 +64,14 @@ class RTP:
         self.port = portNum
         self.packetSize = packetSize
         self.destAddr = destAddr
+        self.dataSocket.settimeout(60) #60 seconds
+
 
         # initialize queues here
         self.sending_queue = Queue.Queue()
         self.not_acked_queue = Queue.Queue()
         self.received_queue = Queue.Queue()
+
 
 
     """
