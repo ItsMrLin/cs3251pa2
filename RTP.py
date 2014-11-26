@@ -13,7 +13,7 @@ class RTP:
     """
         called by the server to set up the welcome socket
         handler is provided by the application that uses rtp in order to handle incoming test
-        handler should be a call back function with parameters like function(data, client_address, rtpInstance for sending data back)
+        handler should be a call back function with parameters like function(data, rtpInstance for sending data back)
     """
     def setupRTPServer(self, handler):
         # setting up initial welcome RTP instance variables
@@ -44,9 +44,10 @@ class RTP:
                 if (ackFromClientDict['checksum'] == bsdChecksum(ackFromClient) and ackFromClientDict['ack'] == 1):
                     print "BOOM! from address: " + str(addr[1])
 
-                # ------------FINISH HANDSHAKE--------------
-                # rtpInstance = new rtp instance with new port
-                # handler(synPacketDictFromClient["data"], addr, rtpInstance)
+                    # ------------FINISH HANDSHAKE--------------
+                    # PAV: start spawning thread receiving packets using _receivePacket
+                    # good reference for multithreading: http://stackoverflow.com/questions/2846653/python-multithreading-for-dummies
+                    # handler(synPacketDictFromClient["data"], addr, rtpInstance)
 
     """
         called by the welcome server whenever there's a request for new RTP connection
@@ -112,4 +113,16 @@ class RTP:
         if packetSize is None:
             packetSize = self.packetSize
         return self.dataSocket.recvfrom(packetSize)[0]
+
+    """
+        called by the server to shutdown the server
+    """
+    def shutdown():
+        pass
+
+    """
+        called by the client in order to close the connection
+    """
+    def close():
+        pass
 

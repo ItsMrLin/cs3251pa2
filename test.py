@@ -40,10 +40,10 @@ from RTP import *
 # ----------------establish connection: step 1------------
 def myHandler():
     pass
-    
+
 rtpServer = RTP()
 rtpServer.setupRTPServer(myHandler)
-
+print "check multithreading"
 # in another script, run following
 # from RTP import *
 # rtpClient = RTP()
