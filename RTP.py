@@ -24,9 +24,6 @@ class RTP:
                         not_acked_dict = stringToRtpPacketDict(self.not_acked_queue[i])
                         if not_acked_dict["seqNum"] == rtpDict["ackNum"] - 1: # if you received an ack for it.
                             self.not_acked_queue.pop(i)
-                
-
-
 
             else if not len(rtpstring) == self.packetSize:
                 print "Something went wrong. Packet recv'ed is a different length from packetSize."
@@ -35,6 +32,7 @@ class RTP:
     
     def _acknowledge(self):
         #do stuff. ack the things
+        pass
 
     def sender(self):
         while True:
@@ -74,7 +72,7 @@ class RTP:
             # in order to get addr, cannot use self._receivePacket here
             data, addr = self.dataSocket.recvfrom(24)
             synPacketDictFromClient = stringToRtpPacketDict(data)
-
+            print "get initail syn!"
             if (synPacketDictFromClient['checksum'] == bsdChecksum(data) and synPacketDictFromClient['syn'] == 1):
                 # create new RTP instance for actual data transfer
                 packetSize = ord(synPacketDictFromClient["data"][3]) + ord(synPacketDictFromClient["data"][2])*256 + ord(synPacketDictFromClient["data"][1])*65536 + ord(synPacketDictFromClient["data"][0])*16777216
@@ -175,7 +173,7 @@ class RTP:
         splits sending payload into packets and adds them to the sending queue
     """
     def sendPacket(self, data):
-        dataBits = RtpPacket.fromStringToBits(data)
+        dataBits = fromStringToBits(data)
         numPackets = 1
         if len(dataBits)/4.0 > self.packetSize:
             numPackets = int((len(dataBits)/4.0)/self.packetSize) + 1

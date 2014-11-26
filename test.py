@@ -43,7 +43,6 @@ def myHandler():
 
 rtpServer = RTP()
 rtpServer.setupRTPServer(myHandler)
-print "check multithreading"
 # in another script, run following
 # from RTP import *
 # rtpClient = RTP()
