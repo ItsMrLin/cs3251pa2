@@ -30,7 +30,8 @@ while not done:
 
 	if command.split(' ')[0] == 'get':
 		filename = command.split(' ')[1]
-		# do stuff
+		rtpClient.sendPacket('get '+filename+fileTerminator)
+
 
 	if command.split(' ')[0] == 'post':
 		filename = command.split(' ')[1]
@@ -41,6 +42,7 @@ while not done:
 		w = command.split(' ')[1]
 		# do stuff
 	if command == 'exit':
+		rtpClient.sendPacket('close_server'+fileTerminator)
 		done = True
 
 

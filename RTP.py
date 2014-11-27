@@ -225,6 +225,8 @@ class RTP:
         self.sending_queue = []#Queue.Queue()
         self.not_acked_queue = []
         self.received_buffer = Queue.PriorityQueue()
+        #the next seqNum to start reading data up to the app layer at
+        self.readSeqNum = 0
 
 
 
@@ -328,31 +330,60 @@ class RTP:
             self.sending_queue.append(rtpstring)
             # print "clientsize send queue size: ", self.sending_queue.qsize()
 
-    def readDataFromBuffer(self, dataSize = 0, terminator = ""):
-        totalString = ""
-        if (dataSize == 0):
-            # if dataSize is 0 and no terminator given, receive one packet stripped by default
-            if (terminator == ""):
-                while not self.received_buffer.empty():
-                    received = self.received_buffer.get()
-                    totalString += received[1]
-                    return totalString.strip()
+    def readData(self, terminator):
+        if not self.received_buffer.empty():
+            first = self.received_buffer.get()
+            if first[0] == self.readSeqNum:
+                data = ""
+                done = False
+                nextSeqNum = self.readSeqNum + self.packetSize
+                data += first[1]
+                while not done:
+                    next = self.received_buffer.get()
+                    if next[0] = nextSeqNum:
+                        data += next[1]
+                        if terminator in data: # even if there is in order data after this, it isn't part of the same message so just wait till later to serve it.
+                            done = True
+                        nextSeqNum = nextSeqNum + self.packetSize
+                    else:
+                        done = True
+                        self.received_buffer.put(next) # put the thing back in the recieved buffer
+
+                self.readSeqNum = nextSeqNum
+                
+                return data
             else:
-                while not self.received_buffer.empty():
-                    received = self.received_buffer.get()
-                    totalString += received[1]
-                    if (received[1].find(terminator) != -1):
-                         return totalString[:totalString.find(terminator)]
+                return ""
+        else:  
+            return ""
+
+    # that was wrong \/
+
+    # def readDataFromBuffer(self, dataSize = 0, terminator = ""):
+    #     totalString = ""
+    #     if (dataSize == 0):
+    #         # if dataSize is 0 and no terminator given, receive one packet stripped by default
+    #         if (terminator == ""):
+    #             while not self.received_buffer.empty():
+    #                 received = self.received_buffer.get()
+    #                 totalString += received[1]
+    #                 return totalString.strip()
+    #         else:
+    #             while not self.received_buffer.empty():
+    #                 received = self.received_buffer.get()
+    #                 totalString += received[1]
+    #                 if (received[1].find(terminator) != -1):
+    #                      return totalString[:totalString.find(terminator)]
                    
-        else:
-            while len(totalString) < dataSize and not self.received_buffer.empty():
-                received = self.received_buffer.get()
-                totalString += received[1]
-                if (len(totalString) >= dataSize):
-                    totalString = totalString[:dataSize]
-                    break
-            return totalString
-        return totalString
+    #     else:
+    #         while len(totalString) < dataSize and not self.received_buffer.empty():
+    #             received = self.received_buffer.get()
+    #             totalString += received[1]
+    #             if (len(totalString) >= dataSize):
+    #                 totalString = totalString[:dataSize]
+    #                 break
+    #         return totalString
+    #     return totalString
 
     """
         called by the server to shutdown the server
