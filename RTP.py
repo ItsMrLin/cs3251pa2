@@ -335,6 +335,7 @@ class RTP:
             if (terminator == ""):
                 # blocking if there is no data in the buffer
                 while totalString == "":
+                    print self.received_buffer.qsize()
                     while not self.received_buffer.empty():
                         received = self.received_buffer.get()
                         totalString += received[1]
@@ -399,13 +400,13 @@ class RTP:
                     self.checkNotAckQueueResend()
 
 
-        totalString = ""
-        while not self.received_buffer.empty():
-            received = self.received_buffer.get()
-            totalString += received[1]
-        pprint("DATA: received_buffer size=" + str(self.received_buffer.qsize()))
-        pprint("DATA: blah count=" + str(totalString.count("blah")))
-        pprint(totalString.strip())
+        # totalString = ""
+        # while not self.received_buffer.empty():
+        #     received = self.received_buffer.get()
+        #     totalString += received[1]
+        # pprint("DATA: received_buffer size=" + str(self.received_buffer.qsize()))
+        # pprint("DATA: blah count=" + str(totalString.count("blah")))
+        # pprint(totalString.strip())
         # when all data sent and acknowledged
         pprint("CLOSED") 
         self.serverIsRunning = False

@@ -1,6 +1,6 @@
 from RtpPacket import *
 from RTP import *
-
+import time
 # ------------------test 1----------------------
 # dataString = "00000000000011110000000000000000"
 # dataString = dataString + "00000000000000000000000000000000"
@@ -41,8 +41,11 @@ from RTP import *
 
 
 rtpServer = RTP()
-rtpServer.setupRTPServer()
+rtpServer.setupRTPServer(3001)
 
+time.sleep(7)
+
+print "DATA READ:", rtpServer.readDataFromBuffer(100, "")
 # in another script, run following
 # from RTP import *
 # rtpClient = RTP()
