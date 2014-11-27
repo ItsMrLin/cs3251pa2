@@ -199,11 +199,14 @@ class RTP:
 
 
     def setupRTPServer(self, selfPort):
-        self.serverIsRunning = True
-        tSender = threading.Thread(target=self._setupRTPServer, args=(selfPort,))
-        tSender.daemon = True
-        tSender.start()
-
+        try:
+            self.serverIsRunning = True
+            tSender = threading.Thread(target=self._setupRTPServer, args=(selfPort,))
+            tSender.daemon = True
+            tSender.start()
+            print 'Setting up'
+        except:
+            print 'NOOOOOO'
 
     """
         called by the welcome server whenever there's a request for new RTP connection
