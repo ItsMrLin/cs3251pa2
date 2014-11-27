@@ -21,36 +21,65 @@ class RTP:
         rtpPacketDict["data"] = ' '*(self.packetSize-20)
         rtpstring = rtpPacketDictToString(rtpPacketDict)
         rtpstring = updatePacketStringChecksum(rtpstring)
-        self.sending_queue.put(rtpstring)
+        self.sending_queue.append(rtpstring)
         
     def _acknowledge(self, packetDict):
         #do stuff. ack the things
-        if self.sending_queue.qsize() > 0:
+        if len(self.sending_queue) > 0:
             done = False
-            for i in range(0,self.sending_queue.qsize()):
-                rtpstring = self.sending_queue.get()
+            for i in range(0,len(self.sending_queue)):
+                rtpstring = self.sending_queue.pop(0)
                 rtpDict = stringToRtpPacketDict(rtpstring)
                 if rtpDict["ack"] == 0 and not done:
                     rtpDict["ack"] = 1
                     rtpDict["ackNum"] = packetDict["seqNum"] + 1
-                    self.sending_queue.put(rtpPacketDictToString(rtpDict))
+                    self.sending_queue.append(rtpPacketDictToString(rtpDict))
                     done = True
                 else:
-                    self.sending_queue.put(rtpstring)
+                    self.sending_queue.append(rtpstring)
             if not done:
                 self._sendSimpleAck(packetDict["seqNum"] + 1)
         else:
             self._sendSimpleAck(packetDict["seqNum"] + 1)
 
 
+    def comparator(packetTuple):
+        return packetTuple[1]
+
+    def checkNotAckQueueResend(self):
+        # check for resending packet
+        if time.time() - self.lastTimeCheckForResend > self.avgPacketTimeOut + 1:
+            self.lastTimeCheckForResend = time.time()
+            # sort by time stamp
+            # print self.not_acked_queue
+            # self.not_acked_queue = sorted(self.not_acked_queue, key=self.comparator)
+            cutOffIndex = 0
+            for i in range(0, len(self.not_acked_queue)):
+                packetTuple = self.not_acked_queue[i]
+                if (self.lastTimeCheckForResend - packetTuple[1]) > (self.avgPacketTimeOut + 1):
+                    cutOffIndex += 1
+                    continue
+                else:
+                    break
+            # packets to put back in sending queue
+            for i in range(cutOffIndex-1, -1, -1):
+                pprint("RESENDING: a packet")
+                self.sending_queue.insert(0, self.not_acked_queue[i][0])
+            # remove those packets from not_acked_queue
+            self.not_acked_queue = self.not_acked_queue[cutOffIndex:]
+
+
     def listener(self):
         while True:
             time.sleep(0.1)
+            self.checkNotAckQueueResend()
 
+            # if for more than 60 seconds without receiving any packet, quit
             try:
                 rtpstring = self.dataSocket.recvfrom(self.packetSize)[0]
             except socket.timeout:
                 sys.exit(0)
+
 
             if not (rtpstring == None or len(rtpstring) < self.packetSize):
                 # print 'CHECKSUM NOT CLEARED YET: '+ str(stringToRtpPacketDict(rtpstring))
@@ -64,18 +93,21 @@ class RTP:
                     # if it is an ack package, we pop things out from not_acked_queue
                     if rtpDict["ack"] == 1:
                         for i in range(0,len(self.not_acked_queue)):
-                            not_acked_dict = stringToRtpPacketDict(self.not_acked_queue[i])
+                            not_acked_dict = stringToRtpPacketDict(self.not_acked_queue[i][0])
                             # pprint("ACK: not acked seqNum=" + str(not_acked_dict["seqNum"]) + "ackNum-1=" + str(rtpDict["ackNum"] - 1))
                             if not_acked_dict["seqNum"] == rtpDict["ackNum"] - 1: # if you received an ack for it.
                                 self.not_acked_queue.pop(i)
                                 break
+
                     
                     # print 'CHECKSUM CLEARED: '+ str(stringToRtpPacketDict(rtpstring))
 
                     # if the payload is not empty, ack it and put it in buffer
                     # second condition below is so we don't acknowledge straight up acks
                     if (not len(rtpDict["data"].strip())==0):
-                        self.received_buffer.put((rtpDict["seqNum"],rtpDict["data"]))
+                        if (str(rtpDict["seqNum"]) not in self.ackedSeqNum):
+                            self.received_buffer.put((rtpDict["seqNum"], rtpDict["data"]))
+                            self.ackedSeqNum[str(rtpDict["seqNum"])] = True
                         self._acknowledge(rtpDict)
                     else:
                         # if payload is empty, check if it's a fin
@@ -94,9 +126,9 @@ class RTP:
     def sender(self):
         while True:
             time.sleep(0.5)
-            if not self.sending_queue.empty():
+            if self.sending_queue:
                 # print "check sender!"
-                rtpstring = self.sending_queue.get()
+                rtpstring = self.sending_queue.pop(0)
                 rtpDict = stringToRtpPacketDict(rtpstring)
                 self.dataSocket.sendto(rtpstring, self.destAddr)
                 # -------------FOR DEBUGGING-------------
@@ -104,7 +136,8 @@ class RTP:
                 # -------------END FOR DEBUGGING-------------
                 # if seqNum is 0, it's a simple ack packet or fin, which does not require ack
                 if (rtpDict["seqNum"] != 0):
-                    self.not_acked_queue.append(rtpstring)
+                    # add time stamp when putting in not_acked_queue for resending
+                    self.not_acked_queue.append((rtpstring, time.time()))
 
             #TODO: resend not_acked things after a certain amount of time
 
@@ -182,11 +215,15 @@ class RTP:
         self.packetSize = packetSize
         self.destAddr = destAddr
         self.readyToClose = False
+        self.lastTimeCheckForResend = time.time()
+        self.avgPacketTimeOut = 0 #3 second
         self.dataSocket.settimeout(60) #60 seconds
         self.seqNum = randint(0,4000000)
 
+        # to avoid repeadted packages
+        self.ackedSeqNum = {}
         # initialize queues here
-        self.sending_queue = Queue.Queue()
+        self.sending_queue = []#Queue.Queue()
         self.not_acked_queue = []
         self.received_buffer = Queue.PriorityQueue()
 
@@ -201,7 +238,10 @@ class RTP:
         self.dataSocket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
         listen_addr = ("", 3000)
         self.dataSocket.bind(listen_addr)
-        self._initializeDataSocket(3000, (serverIp, 3001), initialPacketSizeInByte)
+        # # for direct connection to server
+        # self._initializeDataSocket(3000, (serverIp, 3001), initialPacketSizeInByte)
+        # for using NetEmu
+        self._initializeDataSocket(3000, (serverIp, 8000), initialPacketSizeInByte)
 
         # convert 1500 into binary stored as a 32-bit (4 byte) string
         self._sendPacket(fromBitsToString(str(bin(initialPacketSizeInByte))[2:], 4), {"syn": 1})
@@ -286,7 +326,7 @@ class RTP:
             rtpstring = updatePacketStringChecksum(rtpstring)
             pprint("SENDING: seqNum="+ str(rtpPacketDict["seqNum"]) + "Sender checksum=" + str(bsdChecksum(rtpstring)) + "packet len=" + str(len(rtpstring)))
             # print len(rtpstring)
-            self.sending_queue.put(rtpstring)
+            self.sending_queue.append(rtpstring)
             # print "clientsize send queue size: ", self.sending_queue.qsize()
 
     """
@@ -315,12 +355,19 @@ class RTP:
             # !IMPORTANT, otherwise checksum is going to be set as 0 automatically
             finDictString = updatePacketStringChecksum(finDictString)
 
-            self.sending_queue.put(finDictString)
+            self.sending_queue.append(finDictString)
 
             # if get a fin before, i.e. the other side is finished
-            while not (self.sending_queue.empty() and (not self.not_acked_queue)):
-                pprint("CLOSING: sending_queue size=" + str(self.sending_queue.qsize()) + " not_acked_queue size=" + str(len(self.not_acked_queue)))
-                time.sleep(1)
+            waitCounter = 0
+            while self.sending_queue or self.not_acked_queue: #if either is non-empty
+                pprint("CLOSING: sending_queue size=" + str(len(self.sending_queue)) + " not_acked_queue size=" + str(len(self.not_acked_queue)))
+                waitCounter +=1
+                if (waitCounter >= 60):
+                    break
+                else:
+                    time.sleep(1)
+                    self.checkNotAckQueueResend()
+
 
         totalString = ""
         while not self.received_buffer.empty():
