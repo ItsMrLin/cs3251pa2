@@ -5,7 +5,7 @@ rtpClient = RTP()
 rtpClient.connectTo(3000, "127.0.0.1", 8000, 100)
 rtpClient.sendPacket("blah \0" * 100)
 
-rtpClient.close()
+# rtpClient.close()
 
 while True:
     continue

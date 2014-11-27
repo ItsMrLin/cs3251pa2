@@ -384,38 +384,6 @@ class RTP:
     #                 break
     #         return totalString
     #     return totalString
-    def readDataFromBuffer(self, dataSize = 0, terminator = ""):
-        totalString = ""
-        if (dataSize == 0):
-            # if dataSize is 0 and no terminator given, receive one packet stripped by default
-            if (terminator == ""):
-                # blocking if there is no data in the buffer
-                while totalString == "":
-                    print self.received_buffer.qsize()
-                    while not self.received_buffer.empty():
-                        received = self.received_buffer.get()
-                        totalString += received[1]
-                        return totalString.strip()
-            else:
-                # blocking if there's no such terminator
-                while (totalString.find(terminator) == -1):
-                    while not self.received_buffer.empty():
-                        received = self.received_buffer.get()
-                        totalString += received[1]
-                        if (received[1].find(terminator) != -1):
-                             return totalString[:totalString.find(terminator)]
-                   
-        else:
-            # blocking if the totalString is shorter than dataSize
-            while len(totalString) < dataSize:
-                while not self.received_buffer.empty():
-                    received = self.received_buffer.get()
-                    totalString += received[1]
-                    if (len(totalString) >= dataSize):
-                        totalString = totalString[:dataSize]
-                        return totalString
-        return totalString
->>>>>>> 7c9d65afc04a20f7372b6e711fc5a496b4386c7f
 
     """
         called by the server to shutdown the server
