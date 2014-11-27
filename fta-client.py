@@ -47,8 +47,6 @@ while not done:
 
 
 
-
-
 	if command.split(' ')[0] == 'post':
 		filename = command.split(' ')[1]
 		f = open(filename, 'r')
