@@ -35,7 +35,7 @@ while not done:
 		currentMessage = ""
 
 		while not doneski:
-		    data = readData('\0')
+		    data = rtpClient.readData('\0')
 		    currentMessage += data
 		    if fileTerminator in data:
 		    	currentMessage = currentMessage[0:currentMessage.index(fileTerminator)]+currentMessage[currentMessage.index(fileTerminator)+1:]
