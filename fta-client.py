@@ -31,12 +31,28 @@ while not done:
 	if command.split(' ')[0] == 'get':
 		filename = command.split(' ')[1]
 		rtpClient.sendPacket('get '+filename+fileTerminator)
+		doneski = False
+		currentMessage = ""
+
+		while not doneski:
+		    data = readData('\0')
+		    currentMessage += data
+		    if fileTerminator in data:
+		    	currentMessage = currentMessage[0:currentMessage.index(fileTerminator)]+currentMessage[currentMessage.index(fileTerminator)+1:]
+        		currentMessage = currentMessage.strip()
+		    	f = open(filename,'w')
+		    	f.write(currentMessage)
+		    	f.close()
+		    	doneski = True
+
+
+
 
 
 	if command.split(' ')[0] == 'post':
 		filename = command.split(' ')[1]
 		f = open(filename, 'r')
-		rtpClient.sendPacket(f.read()+fileTerminator)
+		rtpClient.sendPacket('POSTXKJSDLKJEBSJ1232423q2312p8hLASLDJKFASLJDBF21873EVOUFBLALNKHBV\n'+filename+'\n'+f.read()+fileTerminator)
 
 	if command.split(' ')[0] == 'window':
 		w = command.split(' ')[1]
