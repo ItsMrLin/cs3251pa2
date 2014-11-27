@@ -330,6 +330,7 @@ class RTP:
             self.sending_queue.append(rtpstring)
             # print "clientsize send queue size: ", self.sending_queue.qsize()
 
+<<<<<<< HEAD
     def readData(self, terminator):
         if not self.received_buffer.empty():
             first = self.received_buffer.get()
@@ -384,6 +385,39 @@ class RTP:
     #                 break
     #         return totalString
     #     return totalString
+=======
+    def readDataFromBuffer(self, dataSize = 0, terminator = ""):
+        totalString = ""
+        if (dataSize == 0):
+            # if dataSize is 0 and no terminator given, receive one packet stripped by default
+            if (terminator == ""):
+                # blocking if there is no data in the buffer
+                while totalString == "":
+                    print self.received_buffer.qsize()
+                    while not self.received_buffer.empty():
+                        received = self.received_buffer.get()
+                        totalString += received[1]
+                        return totalString.strip()
+            else:
+                # blocking if there's no such terminator
+                while (totalString.find(terminator) == -1):
+                    while not self.received_buffer.empty():
+                        received = self.received_buffer.get()
+                        totalString += received[1]
+                        if (received[1].find(terminator) != -1):
+                             return totalString[:totalString.find(terminator)]
+                   
+        else:
+            # blocking if the totalString is shorter than dataSize
+            while len(totalString) < dataSize:
+                while not self.received_buffer.empty():
+                    received = self.received_buffer.get()
+                    totalString += received[1]
+                    if (len(totalString) >= dataSize):
+                        totalString = totalString[:dataSize]
+                        return totalString
+        return totalString
+>>>>>>> 7c9d65afc04a20f7372b6e711fc5a496b4386c7f
 
     """
         called by the server to shutdown the server
@@ -425,13 +459,13 @@ class RTP:
                     self.checkNotAckQueueResend()
 
 
-        totalString = ""
-        while not self.received_buffer.empty():
-            received = self.received_buffer.get()
-            totalString += received[1]
-        pprint("DATA: received_buffer size=" + str(self.received_buffer.qsize()))
-        pprint("DATA: blah count=" + str(totalString.count("blah")))
-        pprint(totalString.strip())
+        # totalString = ""
+        # while not self.received_buffer.empty():
+        #     received = self.received_buffer.get()
+        #     totalString += received[1]
+        # pprint("DATA: received_buffer size=" + str(self.received_buffer.qsize()))
+        # pprint("DATA: blah count=" + str(totalString.count("blah")))
+        # pprint(totalString.strip())
         # when all data sent and acknowledged
         pprint("CLOSED") 
         self.serverIsRunning = False
