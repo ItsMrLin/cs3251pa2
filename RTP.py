@@ -333,25 +333,30 @@ class RTP:
         if (dataSize == 0):
             # if dataSize is 0 and no terminator given, receive one packet stripped by default
             if (terminator == ""):
-                while not self.received_buffer.empty():
-                    received = self.received_buffer.get()
-                    totalString += received[1]
-                    return totalString.strip()
+                # blocking if there is no data in the buffer
+                while totalString == "":
+                    while not self.received_buffer.empty():
+                        received = self.received_buffer.get()
+                        totalString += received[1]
+                        return totalString.strip()
             else:
-                while not self.received_buffer.empty():
-                    received = self.received_buffer.get()
-                    totalString += received[1]
-                    if (received[1].find(terminator) != -1):
-                         return totalString[:totalString.find(terminator)]
+                # blocking if there's no such terminator
+                while (totalString.find(terminator) == -1):
+                    while not self.received_buffer.empty():
+                        received = self.received_buffer.get()
+                        totalString += received[1]
+                        if (received[1].find(terminator) != -1):
+                             return totalString[:totalString.find(terminator)]
                    
         else:
-            while len(totalString) < dataSize and not self.received_buffer.empty():
-                received = self.received_buffer.get()
-                totalString += received[1]
-                if (len(totalString) >= dataSize):
-                    totalString = totalString[:dataSize]
-                    break
-            return totalString
+            # blocking if the totalString is shorter than dataSize
+            while len(totalString) < dataSize:
+                while not self.received_buffer.empty():
+                    received = self.received_buffer.get()
+                    totalString += received[1]
+                    if (len(totalString) >= dataSize):
+                        totalString = totalString[:dataSize]
+                        return totalString
         return totalString
 
     """
