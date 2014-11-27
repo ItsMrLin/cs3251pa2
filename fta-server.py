@@ -4,6 +4,9 @@ parser.add_argument("X", help="the port number at which the fta-server’s UDP s
 parser.add_argument("A", help="the IP address of NetEmu")
 parser.add_argument("P", help="the UDP port number of NetEmu", type=int)
 args = parser.parse_args()
+
+# TAKE THESE OUT LATER \/
 print args.X
 print args.A
 print args.P
+# TAKE THOSE OUT LATER /\
