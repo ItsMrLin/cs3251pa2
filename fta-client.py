@@ -16,7 +16,25 @@ while not done:
 	print "Please enter a command ('exit' to quit):"
 	command = raw_input()
 	print '----------------------------------------\n'
+	command = command.strip().lower()
 	
+	if connect == 'connect':
+		#do stuff
+		pass
+	if connect == 'disconnect':
+		#do stuff
+		pass
+	if command.split(' ')[0] == 'get':
+		filename = command.split(' ')[1]
+		# do stuff
+	if command.split(' ')[0] == 'post':
+		filename = command.split(' ')[1]
+		# do stuff
+	if command.split(' ')[0] == 'window':
+		w = command.split(' ')[1]
+		# do stuff
+
+
 
 
 
