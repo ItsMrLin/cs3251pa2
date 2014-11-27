@@ -330,7 +330,6 @@ class RTP:
             self.sending_queue.append(rtpstring)
             # print "clientsize send queue size: ", self.sending_queue.qsize()
 
-<<<<<<< HEAD
     def readData(self, terminator):
         if not self.received_buffer.empty():
             first = self.received_buffer.get()
@@ -385,7 +384,6 @@ class RTP:
     #                 break
     #         return totalString
     #     return totalString
-=======
     def readDataFromBuffer(self, dataSize = 0, terminator = ""):
         totalString = ""
         if (dataSize == 0):
