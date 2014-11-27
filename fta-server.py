@@ -22,7 +22,7 @@ rtpServer.setupRTPServer(args.X)
 currentMessage = ""
 
 while True:
-    data = readData('\0')
+    data = rtpServer.readData('\0')
     currentMessage += data
     if '\0' in data:
         currentMessage = currentMessage[0:currentMessage.index('\0')]+currentMessage[currentMessage.index('\0')+1:]
