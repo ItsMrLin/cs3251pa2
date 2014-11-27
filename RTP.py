@@ -340,7 +340,7 @@ class RTP:
                 data += first[1]
                 while not done:
                     next = self.received_buffer.get()
-                    if next[0] = nextSeqNum:
+                    if next[0] == nextSeqNum:
                         data += next[1]
                         if terminator in data: # even if there is in order data after this, it isn't part of the same message so just wait till later to serve it.
                             done = True
