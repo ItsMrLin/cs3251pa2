@@ -38,8 +38,7 @@ from RTP import *
 
 # --------------------test 3----------------------
 # ----------------establish connection: step 1------------
-def myHandler():
-	pass
+
 
 rtpServer = RTP()
 rtpServer.setupRTPServer()

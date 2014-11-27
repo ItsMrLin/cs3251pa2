@@ -146,14 +146,14 @@ class RTP:
         handler is provided by the application that uses rtp in order to handle incoming test
         handler should be a call back function with parameters like function(data, rtpInstance for sending data back)
     """
-    def _setupRTPServer(self):
+    def _setupRTPServer(self, selfPort):
         # setting up initial welcome RTP instance variables
         # due to NetEmu port number limitation we no longer support this
         # self.nextServerPortNum = 5001
         # self.connectionList = []
 
         self.dataSocket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-        listen_addr = ("", 3001)
+        listen_addr = ("", selfPort)
         self.dataSocket.bind(listen_addr)
 
         #JUST FOR TESTING MOVE LATER -----\/
@@ -173,7 +173,7 @@ class RTP:
             if (synPacketDictFromClient['checksum'] == bsdChecksum(data) and synPacketDictFromClient['syn'] == 1):
                 # create new RTP instance for actual data transfer
                 packetSize = ord(synPacketDictFromClient["data"][3]) + ord(synPacketDictFromClient["data"][2])*256 + ord(synPacketDictFromClient["data"][1])*65536 + ord(synPacketDictFromClient["data"][0])*16777216
-                self._initializeDataSocket(3001, addr, packetSize)
+                self._initializeDataSocket(selfPort, addr, packetSize)
 
                 # send ack back to client
                 self._sendPacket("", {"ack": 1})
@@ -198,13 +198,12 @@ class RTP:
                     tListener.join()
 
 
-    def setupRTPServer(self):
+    def setupRTPServer(self, selfPort):
         self.serverIsRunning = True
-        tSender = threading.Thread(target=self._setupRTPServer)
+        tSender = threading.Thread(target=self._setupRTPServer, args=(selfPort,))
         tSender.daemon = True
         tSender.start()
-        while self.serverIsRunning:
-            continue
+
 
     """
         called by the welcome server whenever there's a request for new RTP connection
@@ -233,15 +232,15 @@ class RTP:
     """
         called by client in order to establish a new connection with a server
     """
-    def connectTo(self, serverIp, initialPacketSizeInByte = 1500):
+    def connectTo(self, selfPort, serverIp, destPort, initialPacketSizeInByte = 1500):
         # only used for setting up connection
         self.dataSocket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-        listen_addr = ("", 3000)
+        listen_addr = ("", selfPort)
         self.dataSocket.bind(listen_addr)
         # # for direct connection to server
         # self._initializeDataSocket(3000, (serverIp, 3001), initialPacketSizeInByte)
         # for using NetEmu
-        self._initializeDataSocket(3000, (serverIp, 8000), initialPacketSizeInByte)
+        self._initializeDataSocket(selfPort, (serverIp, destPort), initialPacketSizeInByte)
 
         # convert 1500 into binary stored as a 32-bit (4 byte) string
         self._sendPacket(fromBitsToString(str(bin(initialPacketSizeInByte))[2:], 4), {"syn": 1})
@@ -329,6 +328,32 @@ class RTP:
             self.sending_queue.append(rtpstring)
             # print "clientsize send queue size: ", self.sending_queue.qsize()
 
+    def readDataFromBuffer(self, dataSize = 0, terminator = ""):
+        totalString = ""
+        if (dataSize == 0):
+            # if dataSize is 0 and no terminator given, receive one packet stripped by default
+            if (terminator == ""):
+                while not self.received_buffer.empty():
+                    received = self.received_buffer.get()
+                    totalString += received[1]
+                    return totalString.strip()
+            else:
+                while not self.received_buffer.empty():
+                    received = self.received_buffer.get()
+                    totalString += received[1]
+                    if (received[1].find(terminator) != -1):
+                         return totalString[:totalString.find(terminator)]
+                   
+        else:
+            while len(totalString) < dataSize and not self.received_buffer.empty():
+                received = self.received_buffer.get()
+                totalString += received[1]
+                if (len(totalString) >= dataSize):
+                    totalString = totalString[:dataSize]
+                    break
+            return totalString
+        return totalString
+
     """
         called by the server to shutdown the server
     """
@@ -375,7 +400,7 @@ class RTP:
             totalString += received[1]
         pprint("DATA: received_buffer size=" + str(self.received_buffer.qsize()))
         pprint("DATA: blah count=" + str(totalString.count("blah")))
-        pprint(totalString)
+        pprint(totalString.strip())
         # when all data sent and acknowledged
         pprint("CLOSED") 
         self.serverIsRunning = False
